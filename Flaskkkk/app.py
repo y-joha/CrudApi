@@ -1,20 +1,72 @@
 from flask import Flask, request, jsonify, make_response
 from flask_sqlalchemy import SQLAlchemy
 from os import environ
-
+from enum import Enum
+import datetime
+# to run this thing write this
+# sudo docker.compose up --build flask_app
 app = Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = environ.get('DB_URL')
 db = SQLAlchemy(app)
 
+class BrandEnum(Enum):
+    Kawasaki = 'Kawasaki'
+    Suzuki = 'Suzuki'
+    Yamaha = 'Yamaha'
+    Honda = 'Honda'
+
+class Model_NameEnum(Enum):
+    Ninja = 'Ninja'
+    Z = 'Z'
+    
+#Brand = Enum('Brand', ['Kawasaki', 'Suzuki', 'Yamaha','Honda'])
+#Model_Name = Enum('Model', ['Ninja','Z'])
+
 class User(db.Model):
     __tablename__ = 'users'
     
+    id = db.Column(db.Integer, primary_key=True)
+    username = db.Column(db.String(80),unique=True,nullable=False)
+    email = db.Column(db.String(120),unique=True,nullable=False)
+    def json(self):
+        return{
+            'id' : self.id, 
+            'username' : self.username, 
+            'email' : self.email, 
+        }
+
+class Rider(db.Model):
+    __tablename__ = 'riders'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    username = db.Column(db.String(80),unique=True,nullable=False)
+    email = db.Column(db.String(120),unique=True,nullable=False)
+    brand = db.Column(db.Enum(BrandEnum),nullable=False)
+    model = db.Column(db.Enum(Model_NameEnum),nullable=False)
+    km = db.Column(db.Integer, nullable=False)
+    year = db.Column(db.Date, nullable=False)
+    def json(self):
+        return{
+            'id' : self.id, 
+            'username' : self.username, 
+            'email' : self.email, 
+            'brand' : self.brand,
+            'model' : self.model,
+            'km' : self.km,
+            'year' : self.year.isoformat(),
+        }
+    
+class Tool(db.Model):
+    __tablename__ = 'tools'
+    
     id=db.Column(db.Integer, primary_key=True)
-    username=db.Column(db.String(80),unique=True,nullable=False)
-    email=db.Column(db.String(120),unique=True,nullable=False)
+    name=db.Column(db.String(80),unique=True,nullable=False)
     
     def json(self):
-        return{'id' : self.id, 'username' : self.username, 'email' : self.email}
+        return{'id' : self.id, 'name' : self.name}
+    
+
+    
 db.create_all()
 
 
@@ -23,6 +75,75 @@ db.create_all()
 def test():
     return make_response(jsonify({'message' : 'test route'}),200)
 
+#create a rider for the table
+@app.route('/riders', methods=['POST'])
+def create_rider():
+    try:
+        data = request.get_json()
+        new_rider = Rider(
+            username=data['username'],
+            email=data['email'],
+            brand=data['brand'],
+            model=data['model'],
+            km=data['km'],
+            year=datetime.datetime.strptime(data['year'], '%Y/%m').date()
+        )
+        db.session.add(new_rider)
+        db.session.commit()
+        return make_response(jsonify({'message' : 'New Rider added to List'}), 201)
+    except Exception as e:
+        return make_response(jsonify({'message': 'error creating new rider'}) , 500)
+
+@app.route('/riders', methods=['GET'])
+def list_riders():
+    try:
+        riders = Rider.query.all()
+        return make_response(jsonify([rider.json() for rider in riders]),200)
+    except Exception as e:
+        return make_response(jsonify({'message' :'error getting riders'}),500)
+
+#get a rider by id
+@app.route('/riders/<int:id>', methods=['GET'])
+def get_rider(id):
+    try:
+        rider = Rider.query.filter_by(id=id).first()
+        if rider:
+            return make_response(jsonify({'rider' : rider.json()}),200)
+        return make_response(jsonify({'rider' : 'rider not found'}),404)
+    except Exception as e:
+        return make_response(jsonify({'message' : 'error getting rider'}),500)
+
+# update a rider
+@app.route('/riders/<int:id>', methods=['PUT'])
+def update_rider(id):
+    try:
+        rider = Rider.query.filter_by(id=id).first()
+        if rider:
+            data = request.get_json()
+            rider.username = data['username']
+            rider.email = data['email']
+            rider.brand=data['brand']
+            rider.model=data['model']
+            rider.km=data['km']
+            rider.year=data['year']
+            db.session.commit()
+            return make_response(jsonify({'message' : 'rider updated'}),200)
+        return make_response(jsonify({'message' : 'rider not found'}),404)
+    except Exception as e:
+        return make_response(jsonify({'message' : 'error updating rider'}),500)
+
+#delete rider from the db
+@app.route('/riders/<int:id>',methods=['DELETE'])
+def delete_rider(id):
+    try:
+        rider = Rider.query.filter_by(id=id).first()
+        if rider:
+            db.session.delete(rider)
+            db.session.commit()
+            return make_response(jsonify({'message' : 'rider deleted'}),200)
+        return make_response(jsonify({'message' : 'rider not found'}),404)
+    except Exception as e:
+        return make_response(jsonify({'message' : 'error deleting rider'}),500)
 
 #create a user
 @app.route('/users', methods=['POST'])
