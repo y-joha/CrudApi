@@ -134,7 +134,6 @@ if __name__ == '__main__':
 def create_rider():
     try:
         data = request.get_json()
-        print(data)
         new_rider = Rider(
             rider_name=data['rider_name'],
             email=data['email'],
@@ -236,6 +235,25 @@ def get_parts():
         return make_response(jsonify([part.json() for part in parts]),200)
     except Exception as e:
         return make_response(jsonify({'message' :'error getting parts'}),500)
+
+
+
+
+#    RIDER METHODS *****************#
+#create a tool for the table
+@app.route('/tools', methods=['POST'])
+def create_tool():
+    try:
+        data = request.get_json()
+        new_tool = Tool(
+            name=data['name'],
+        )
+        db.session.add(new_tool)
+        db.session.commit()
+        return make_response(jsonify({'message' : 'New Tool added to List'}), 201)
+    except Exception as e:
+        return make_response(jsonify({'message': 'Ein Tool Beseder?? EINNNNN'}) , 500)
+
 
 #    User METHODS *****************#
 
