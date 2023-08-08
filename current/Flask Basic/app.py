@@ -36,6 +36,10 @@ class System(str, Enum):
     Electrical = 'Electrical'
     Other = 'Other'
 
+#Change Model And Brand To Be Extarcted From DMV DataBase (Israel)
+#initially
+
+
 class Brand(str, Enum):
     Kawasaki = 'Kawasaki'
     Suzuki = 'Suzuki'
@@ -43,24 +47,42 @@ class Brand(str, Enum):
     Honda = 'Honda'
 
 class Model_Name(str, Enum):
+    #Kawasaki
     Ninja = 'Ninja'
     Z = 'Z'
+    Versys = 'Versys'
+    Vulcan = 'Vulcan'
+    H2 = 'H2'
+    ZH2 = 'ZH2'
+    #Honda
+    CB1000R = 'CB1000R'
+    CB650R = 'CB650R'
+    CB500F = 'CB650F'
+    CBR1000RRR = 'CBR1000RRR'
+    CBR500R = 'CBR500R'
+    CRF300L = 'CRF300L'
+    CRF1100 = 'CRF1100'
+    #Suzuki
+    GSX1300Busa = 'GSX1300Busa'
+    GSXS800 = 'GSXS800'
+    GSXR1000 = 'GSXR1000'
+    SV650ABS = 'SV650ABS'
+    DR650SE = 'DR650SE'
+    DRZ400S = 'DRZ400S'
+    #Yamaha
+    YZFR1M = 'YZFR1M'
+    YZFR1 = 'YZFR1'
+    R7 = 'R7'
+    YZFR3 = 'YZFR3'
+    MT10 = 'MT10'
+    MT9SP = 'MT9SP'
+    MT09 = 'MT09'
+    MT07 = 'MT07'
+    Tracer7 = 'Tracer7'
+    Tracer9 = 'Tracer9'
     
-#Brand = Enum('Brand', ['Kawasaki', 'Suzuki', 'Yamaha','Honda'])
-#Model_Name = Enum('Model', ['Ninja','Z'])
-
-class User(db.Model):
-    __tablename__ = 'users'
     
-    id = db.Column(db.Integer, primary_key=True)
-    username = db.Column(db.String(80),unique=True,nullable=False)
-    email = db.Column(db.String(120),unique=True,nullable=False)
-    def json(self):
-        return{
-            'id' : self.id, 
-            'username' : self.username, 
-            'email' : self.email, 
-        }
+    
 
 class Rider(db.Model):
     __tablename__ = 'riders'
@@ -68,6 +90,7 @@ class Rider(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     rider_name = db.Column(db.String(80),unique=True,nullable=False)
     email = db.Column(db.String(120),unique=True,nullable=False)
+    license_plate = db.Column(db.Integer, unique=True, nullable=False)
     brand = db.Column(db.Enum(Brand),nullable=False)
     model = db.Column(db.Enum(Model_Name),nullable=False)
     km = db.Column(db.Integer, nullable=False)
@@ -77,6 +100,7 @@ class Rider(db.Model):
             'id' : self.id, 
             'rider_name' : self.rider_name, 
             'email' : self.email, 
+            'license_plate' : self.license_plate,
             'brand' : self.brand,
             'model' : self.model,
             'km' : self.km,
@@ -96,7 +120,7 @@ class Part(db.Model):
     __tablename__ = 'parts'
     
     id=db.Column(db.Integer, primary_key=True)
-    name=db.Column(db.String(120),unique=True,nullable=False)
+    name=db.Column(db.String(250),unique=True,nullable=False)
     system=db.Column(db.Enum(System),unique=True,nullable=False)
     torque=db.Column(db.Float,unique=True,nullable=False)
     remarks=db.Column(db.String(20),unique=True,nullable=False)
@@ -121,6 +145,7 @@ if __name__ == '__main__':
 #{
 #    "rider_name":"Yohai Davitsiotzo",
 #    "email":"yohai@thewrong.com",
+#    "license_plate" : 414xxx02,
 #    "brand":"Kawasaki",
 #    "model":"Z",
 #    "km": 34000,
@@ -137,6 +162,7 @@ def create_rider():
         new_rider = Rider(
             rider_name=data['rider_name'],
             email=data['email'],
+            license_plate=data['license_plate'],
             brand=data['brand'],
             model=data['model'],
             km=data['km'],
@@ -177,6 +203,7 @@ def update_rider(id):
             data = request.get_json()
             rider.rider_name = data['rider_name']
             rider.email = data['email']
+            rider.license_plate=data['license_plate']
             rider.brand=data['brand']
             rider.model=data['model']
             rider.km=data['km']
@@ -236,10 +263,12 @@ def get_parts():
     except Exception as e:
         return make_response(jsonify({'message' :'error getting parts'}),500)
 
+#{
+#    "name":"Sproket"
+#}
 
 
-
-#    RIDER METHODS *****************#
+#    TOOLS METHODS *****************#
 #create a tool for the table
 @app.route('/tools', methods=['POST'])
 def create_tool():
@@ -254,13 +283,12 @@ def create_tool():
     except Exception as e:
         return make_response(jsonify({'message': 'Ein Tool Beseder?? EINNNNN'}) , 500)
 
-
+    
+#get all registered Tools
+@app.route('/tools', methods=['GET'])
+def get_tools():
     try:
-        user = User.query.filter_by(id=id).first()
-        if user:
-            db.session.delete(user)
-            db.session.commit()
-            return make_response(jsonify({'message' : 'user deleted'}),200)
-        return make_response(jsonify({'message' : 'user not found'}),404)
+        tools = Tool.query.all()
+        return make_response(jsonify([tool.json() for tool in tools]),200)
     except Exception as e:
-        return make_response(jsonify({'message' : 'error deleting user'}),500)
+        return make_response(jsonify({'message' :'error getting tools'}),500)
