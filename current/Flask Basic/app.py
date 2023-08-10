@@ -1,21 +1,28 @@
-from flask import Flask, request, jsonify, make_response
+from flask import Flask,request, jsonify, make_response
 from flask_sqlalchemy import SQLAlchemy
 from os import environ
 from enum import Enum
 import datetime
+import requests
+import urllib
 import psycopg2
-#first wrote this
-# sudo docker.compose up flask_db
-
-#than wrote 
-# sudo docker.compose build
-
-#than
-## sudo docker.compose up --build flask_app
 
 
-# to run this thing write this
-# sudo docker.compose up --build flask_app
+# Define the API endpoint URL
+base_url = 'https://data.gov.il/api/3/action/datastore_search?'
+
+# Define the parameters for the search
+resource_id = 'bf9df4e2-d90d-4c0a-a400-19e15af8e95f'  # Your resource ID
+limit = 1  # Number of records to retrieve
+  # Replace with the actual mispar_rehev value you're looking for
+
+# Construct the complete URL with parameters
+
+
+# Make a GET request to the API endpoint
+
+
+
 
 app = Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///motor_db.sqlite'
@@ -92,7 +99,7 @@ class Rider(db.Model):
     email = db.Column(db.String(120),unique=True,nullable=False)
     license_plate = db.Column(db.Integer, unique=True, nullable=False)
     brand = db.Column(db.Enum(Brand),nullable=False)
-    model = db.Column(db.Enum(Model_Name),nullable=False)
+    model = db.Column(db.String(40),nullable=False)
     km = db.Column(db.Integer, nullable=False)
     year = db.Column(db.DateTime, nullable=False)
     def json(self):
@@ -158,21 +165,29 @@ if __name__ == '__main__':
 @app.route('/riders', methods=['POST'])
 def create_rider():
     try:
+        # Make a GET request to the API endpoint
         data = request.get_json()
+        query = data['license_plate']
+        url = f'{base_url}resource_id={resource_id}&limit={limit}&q={query}'
+        response = requests.get(url)
+        url_data = response.json()
+        records = url_data['result']['records']
         new_rider = Rider(
             rider_name=data['rider_name'],
             email=data['email'],
-            license_plate=data['license_plate'],
+            license_plate=records[0]['mispar_rechev'],
             brand=data['brand'],
-            model=data['model'],
+            model=records[0]['degem_nm'],
             km=data['km'],
-            year=datetime.datetime.strptime(data['year'], '%Y/%m').date()
+            year=datetime.datetime.strptime(records[0]['moed_aliya_lakvish'], '%Y-%m').date()
         )
+        
+
         db.session.add(new_rider)
         db.session.commit()
         return make_response(jsonify({'message' : 'New Rider added to List'}), 201)
     except Exception as e:
-        return make_response(jsonify({'message': 'Error creating new rider'}) , 500)
+        return make_response(jsonify({'message': 'Error creating new rider: ' + e.args[0]}) , 500)
 
 #get all registered rides
 @app.route('/riders', methods=['GET'])
