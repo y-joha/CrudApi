@@ -1,11 +1,10 @@
 from flask import Flask,request, jsonify, make_response
 from flask_sqlalchemy import SQLAlchemy
+from flask_login import UserMixin
 from os import environ
 from enum import Enum
 import datetime
 import requests
-import urllib
-import psycopg2
 
 
 # Define the API endpoint URL
@@ -27,6 +26,7 @@ limit = 1  # Number of records to retrieve
 app = Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///motor_db.sqlite'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+app.config['SECRET_KEY'] = '46acc08d62e83091a75833cb80b6796d127a1103ad58d49be54e62d5f0381942'
 db = SQLAlchemy(app)
 
 class System(str, Enum):
