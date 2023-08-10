@@ -1,7 +1,10 @@
 from flask import Flask,request, jsonify, make_response
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import UserMixin
-from os import environ
+from flask_wtf import FlaskForm
+from wtforms import StringField, PasswordField, SubmitField
+from wtforms.validators import InputRequired, Length, ValidationError
+from flask_bcrypt import Bcrypt
 from enum import Enum
 import datetime
 import requests
@@ -88,10 +91,10 @@ class Model_Name(str, Enum):
     Tracer7 = 'Tracer7'
     Tracer9 = 'Tracer9'
     
-    
+
     
 
-class Rider(db.Model):
+class Rider(db.Model, UserMixin):
     __tablename__ = 'riders'
     
     id = db.Column(db.Integer, primary_key=True)
@@ -113,7 +116,34 @@ class Rider(db.Model):
             'km' : self.km,
             'year' : self.year.isoformat()
         }
+
+class RegisterForm(FlaskForm):
+    email = StringField(validators=[InputRequired(),
+        Length(min=4, max=100)],render_kw={"placeholder":"Username"})
     
+    password = PasswordField(validators=[InputRequired(),
+        Length(min=4, max=20)],render_kw={"placeholder":"Password"})
+    
+    submit = SubmitField("Register")
+    
+    def validate_email(self, email):
+        existing_email = Rider.query.filter_by(
+            email=email.data).first()
+        if existing_email:
+            raise ValidationError(
+                "HEY Buddy, This Email is Allready Taken!.")
+
+
+class LoginForm(FlaskForm):
+    email = StringField(validators=[InputRequired(),
+            Length(min=4, max=100)],render_kw={"placeholder":"Username"})
+    
+    password = PasswordField(validators=[InputRequired(),
+        Length(min=4, max=20)],render_kw={"placeholder":"Password"})
+    
+    submit = SubmitField("Login")
+
+  
 class Tool(db.Model):
     __tablename__ = 'tools'
     
